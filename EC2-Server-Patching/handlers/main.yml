@@ -1,0 +1,23 @@
+---
+- name: Instance_rebooted
+  service:
+    name: tomcat
+    state: restarted
+  register: tomcat_output
+  when:  inventory_hostname in groups['dev-backend']
+- debug:
+    msg:
+      - "Tomcat server startup ended with {{tomcat_output}}"
+      - "Tomcat server startup status {{tomcat_output.changed}}"
+
+- name: Instance_rebooted
+  service:
+    name: myfy
+    state: restarted
+  register: myfy_service_output
+  when:  inventory_hostname in groups['dev-frontend']
+  listen: Instance_rebooted
+- debug:
+    msg:
+      - "myfy service startup ended with {{myfy_service_output}}"
+      - "myfy service status - {{myfy_service_output.changed}}"

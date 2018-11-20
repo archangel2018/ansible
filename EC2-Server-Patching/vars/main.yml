@@ -1,0 +1,6 @@
+---
+# defaults file for backend_deploy
+normal_package_names:
+  - libudev1
+kernel_package_names:
+

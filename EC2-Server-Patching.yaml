@@ -1,0 +1,37 @@
+- hosts: 
+    - dev-backend
+  gather_facts: true
+  become: true
+  serial: 1
+
+  pre_tasks:
+    - name: Collecting EC2_Facts
+      action: ec2_facts
+    - name: Taking SnapShot of the "{{ ansible_hostname }}" instance
+      ec2_snapshot:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        device_name: /dev/sda1
+        region: "{{ ansible_ec2_placement_region }}"
+        description: This SnapShot is takken before patching the {{ ansible_hostname }} instance
+        last_snapshot_min_age: 300
+        wait: yes
+        wait_timeout: 300
+        snapshot_tags:
+          name: "{{ ansible_hostname }}"
+          Usecase: Temp
+      register: SnapShot_Output
+      delegate_to: 127.0.0.1
+    - debug:
+        msg:
+          - "SnapShot task for {{ ansible_hostname }} ended with {{ SnapShot_Output }}"
+          - "SnapShot task for {{ ansible_hostname }} status - {{ SnapShot_Output.changed }}"
+
+  roles:
+    - EC2-Server-Patching
+
+  post_tasks:
+   - name: Checking Instance state.
+     ping:
+     delegate_to: 127.0.0.1
+     register: Ping_Result
+   - debug: var=Ping_Result

@@ -1,0 +1,84 @@
+---
+- name: Patching vurlnerable packages in {{ansible_hostname}}
+  apt:
+    name: "{{ item }}"
+  register: apt_output
+  when: ansible_os_family == "Debian"
+  with_items:
+    - "{{ normal_package_names }}"
+- debug: 
+    msg:
+      - "Installing Package {{apt_output}}"
+      - "Installing Package status - {{apt_output.changed}}"
+
+- name: Patching vurlnerable packages in {{ansible_hostname}}
+  apt:
+    name: "{{ item }}"
+  register: yum_output
+  when: ansible_os_family == "Redhat"
+  with_items:
+    - "{{ normal_package_names }}"
+- debug: 
+    msg:
+      - "Installing Package {{yum_output}}"
+      - "Installing Package status - {{yum_output.changed}}"
+
+- name: Patching Linux image in {{ansible_hostname}}
+  apt:
+    name: "{{ item }}"
+  register: apt_output_kernel
+  when: ansible_os_family == "Debian" and kernel_package_names != None
+  with_items:
+    - "{{ kernel_package_names }}"
+- debug: 
+    msg:
+      - "Installing Package {{apt_output_kernel}}"
+      - "Installing Package status - {{apt_output_kernel.changed}}"
+
+- name: Patching Linux image in {{ansible_hostname}}
+  apt:
+  register: yum_output_kernel
+  when: ansible_os_family == "Debian" and kernel_package_names != None
+  with_items:
+    - "{{ kernel_package_names }}"
+- debug:
+    msg:
+      - "Installing Package {{yum_output_kernel}}"
+      - "Installing Package status - {{yum_output_kernel.changed}}"
+
+- name: Rebooting the Server {{ansible_hostname}}
+  ec2:
+    instance_ids: "{{ ansible_ec2_instance_id }}"
+    region: "{{ ansible_ec2_placement_region }}"
+    state: restarted
+    wait: true
+  failed_when: ansible_ec2_instance_id.stderr is defined
+  register: ec2_restart_output
+  delegate_to: 127.0.0.1
+- debug:
+    msg:
+      - "Rebooting {{ansible_hostname}} ended with {{ec2_restart_output}}"
+      - "Rebooting {{ansible_hostname}} state - {{ec2_restart_output.changed}}"
+- name: Waiting for server connection.
+  wait_for:
+    host: "{{ ansible_ec2_local_ipv4 }}"
+    port: 22
+    state: started
+    delay: 30
+    timeout: 300
+  delegate_to: 127.0.0.1
+- name: starting required services
+  shell: echo "Starting services in {{ ansible_hostname }}"
+  notify: Instance_rebooted
+- meta: flush_handlers
+- name: Waiting for Tomcat server.
+  wait_for:
+    host: "{{ ansible_ec2_local_ipv4 }}"
+    port: 8080 
+    state: started
+    delay: 30
+    timeout: 300
+
+
+
+    
